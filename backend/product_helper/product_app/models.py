@@ -1,3 +1,4 @@
+from django.core import validators
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from product_helper.settings import (
@@ -7,6 +8,7 @@ from product_helper.settings import (
     INGRIDIENT_NAME_LENGTH, MEASURMENT_COUNT_LENGTH,
     USERNAME_LENGTH
 )
+from .validators import username_validator, slug_validator
 
 
 class User(AbstractUser):
@@ -15,7 +17,8 @@ class User(AbstractUser):
         'Имя пользователя',
         unique=True,
         max_length=USERNAME_LENGTH,
-        # ^[\w.@+-]+\z
+        blank=False,
+        validators=[username_validator]
     )
     email = models.EmailField(
         'Email пользователя',
@@ -53,12 +56,15 @@ class Follow(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='follower',
-        verbose_name='Подписчик')
+        verbose_name='Подписчик',
+        blank=False)
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='following',
-        verbose_name='Автор')
+        verbose_name='Автор',
+        blank=False
+    )
 
     class Meta:
         verbose_name = "Подписка"
@@ -91,10 +97,12 @@ class Tag(models.Model):
         unique=True,
         max_length=200,
         verbose_name='Метка URL',
-        # ^[-a-zA-Z0-9_]+$
+        blank=False,
+        validators=[slug_validator]
     )
 
     class Meta:
+        ordering = ['id']
         verbose_name = 'Тэг'
         verbose_name_plural = 'Тэги'
 
@@ -118,6 +126,7 @@ class Ingredient(models.Model):
     )
 
     class Meta:
+        ordering = ('name',)
         verbose_name = 'Ингридиент'
         verbose_name_plural = 'Ингридиенты'
 
@@ -125,12 +134,39 @@ class Ingredient(models.Model):
         return self.name
 
 
+class IngredientAmount(models.Model):
+    """Модель количества ингредиента."""
+    ingredient = models.ForeignKey(
+        Ingredient,
+        on_delete=models.CASCADE,
+        related_name='ingredient_amount',
+        verbose_name='Ингредиент'
+    )
+    amount = models.PositiveSmallIntegerField(
+        'Количество',
+        blank=False,
+        validators=(
+            validators.MinValueValidator(
+                1, message="Минимальное количество ингридиентов 1"
+            ),
+        ),
+    )
+
+    class Meta:
+        verbose_name = 'Количество ингредиента'
+        verbose_name_plural = 'Количество ингредиентов'
+
+    def __str__(self):
+        return (f'{self.ingredient.name} ({self.ingredient.measurement_unit})'
+                f' - {self.amount}')
+
+
 class Recipe(models.Model):
     """Модель рецепта."""
     author = models.ForeignKey(
         User, on_delete=models.CASCADE,
         related_name='recipes',
-        verbose_name="Автор рецепта"
+        verbose_name="Автор рецепта",
     )
     name = models.CharField(
         'Название рецепта',
@@ -140,7 +176,8 @@ class Recipe(models.Model):
     )
     image = models.ImageField(
         upload_to='recipes/',
-        verbose_name='Картинка к рецепту'
+        verbose_name='Картинка к рецепту',
+        blank=False,
     )
     text = models.TextField(
         'Описание',
@@ -149,22 +186,33 @@ class Recipe(models.Model):
         help_text="Описание рецепта"
     )
     ingredients = models.ManyToManyField(
-        Ingredient,
+        IngredientAmount,
         related_name='ingredients',
-        verbose_name='Ингридиенты для рецепта'
+        verbose_name='Ингридиенты для рецепта',
+        blank=False,
     )
     tags = models.ManyToManyField(
         Tag,
         related_name='tags',
-        verbose_name='Tэг рецепта'
+        verbose_name='Tэг рецепта',
+        blank=False
     )
-    cooking_time = models.IntegerField(
+    cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления',
         blank=False,
-        # валидатор на >=1
+        validators=(
+            validators.MinValueValidator(
+                1, message="Минимальное время приготовления 1 минута"
+            ),
+        ),
+    )
+    pub_date = models.DateTimeField(
+        "Дата публикации",
+        auto_now_add=True
     )
 
     class Meta:
+        ordering = ("-pub_date",)
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
 
