@@ -3,13 +3,12 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
+from product_app.models import (Favorite, Follow, Ingredient, IngredientAmount,
+                                Recipe, ShoppingCart, Tag, User)
 from rest_framework import mixins, permissions, status, views, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-
-from product_app.models import (Favorite, Follow, Ingredient, IngredientAmount,
-                                Recipe, ShoppingCart, Tag, User)
 
 from .permissions import OwnerOrReadOnly
 from .serializers import (BaseUserSerializer, CreateRecipeSerializer,
@@ -131,7 +130,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         if tags_query:
             recipes = recipes.exclude(
                 tags__in=Tag.objects.exclude(slug__in=tags_query))
-        return recipes
+        return recipes or Recipe.objects.none()
 
     def get_serializer_class(self):
         """Получение сериализатора для конкретного события."""
@@ -296,8 +295,7 @@ class FollowListViewSet(viewsets.ModelViewSet):
             followers_ids = list(
                 user.follower.all().values_list('author')[0])
             queryset = User.objects.filter(id__in=followers_ids)
-            return queryset
-        return User.objects.none()
+        return queryset or User.objects.none()
 
     def list(self, request):
         """

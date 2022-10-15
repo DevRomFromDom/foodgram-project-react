@@ -1,11 +1,10 @@
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
-from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
-
 from product_app.models import (Follow, Ingredient, IngredientAmount, Recipe,
                                 Tag, User)
+from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
 
 class BaseUserSerializer(serializers.ModelSerializer):
@@ -26,8 +25,8 @@ class BaseUserSerializer(serializers.ModelSerializer):
         request_user = self.context.get('request').user
         return (Follow.objects.filter(user=request_user,
                                       author=author_user).exists()
-                if author_user != request_user and
-                not request_user.is_anonymous
+                if author_user != request_user
+                and not request_user.is_anonymous
                 else False)
 
 
@@ -168,8 +167,8 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'ingredients/tags':
                  'Ингредиенты/тэги не могут быть пустыми.'})
-        if (len(data['tags']) != len(set(data['tags'])) or
-                len(data['ingredients']) != len(set(ingredients_id_list))):
+        if (len(data['tags']) != len(set(data['tags']))
+                or len(data['ingredients']) != len(set(ingredients_id_list))):
             raise serializers.ValidationError(
                 {'ingredients/tags':
                  'Ингредиенты/тэги не могут повтарятся.'})
@@ -187,13 +186,12 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         """Сериализатор для возвращеия валидных данных."""
-        data = RecipeSerializer(
+        return RecipeSerializer(
             instance,
             context={
                 'request': self.context.get('request')
             }
         ).data
-        return data
 
     def create(self, validated_data):
         """Создание рецепта."""
@@ -272,7 +270,7 @@ class FollowSerializer(BaseUserSerializer):
         """Получение рецептов автора."""
         if self.context['request'].query_params.get('recipes_limit'):
             limit = int(self.context['request'].query_params.get(
-                'recipes_limit'))-1
+                'recipes_limit')) - 1
         else:
             limit = None
         serializer = ShortRecipeSerializer(
