@@ -38,4 +38,4 @@ Here you can:
 ## Created by: 
 - [Роман Каменских](https://github.com/DevRomFromDom)
 
-![example workflow](https://github.com/DevRomFromDom/product_helper/actions/workflows/product_helper.yml/badge.svg)
+![example workflow](https://github.com/DevRomFromDom/foodgram-project-react/actions/workflows/product_helper.yml/badge.svg)
