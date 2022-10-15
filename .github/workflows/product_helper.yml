@@ -37,7 +37,7 @@ jobs:
       - name: Push to Docker Hub backend
         uses: docker/build-push-action@v2 
         with:
-          context: ./product_helper/
+          context: ./backend/product_helper/
           push: true
           tags: devilr/product_helper_backend:latest
   deploy:
