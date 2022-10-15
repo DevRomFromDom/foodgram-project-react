@@ -1,14 +1,9 @@
-from django.core import validators
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.core import validators
 from django.db import models
-from product_helper.settings import (
-    EMAIL_LENGTH, FIRST_NAME_LENGTH,
-    LAST_NAME_LENGTH, PASSWORD_LENGTH,
-    RECIPE_DESC_LENGTH, TAG_NAME_LENGTH, RECIPE_NAME_LENGTH,
-    INGRIDIENT_NAME_LENGTH, MEASURMENT_COUNT_LENGTH,
-    USERNAME_LENGTH
-)
-from .validators import username_validator, slug_validator
+
+from .validators import hex_color_validator, username_validator
 
 
 class User(AbstractUser):
@@ -16,34 +11,33 @@ class User(AbstractUser):
     username = models.CharField(
         'Имя пользователя',
         unique=True,
-        max_length=USERNAME_LENGTH,
-        blank=False,
-        validators=[username_validator]
+        max_length=settings.USERNAME_LENGTH,
+        validators=(username_validator,)
     )
     email = models.EmailField(
         'Email пользователя',
         blank=False,
         unique=True,
-        max_length=EMAIL_LENGTH,
+        max_length=settings.EMAIL_LENGTH,
     )
     first_name = models.CharField(
         'Имя',
-        max_length=FIRST_NAME_LENGTH,
+        max_length=settings.FIRST_NAME_LENGTH,
         blank=False,
     )
     last_name = models.CharField(
         'Фамилия',
-        max_length=LAST_NAME_LENGTH,
+        max_length=settings.LAST_NAME_LENGTH,
         blank=False,
     )
     password = models.CharField(
         'Пароль',
-        max_length=PASSWORD_LENGTH,
+        max_length=settings.PASSWORD_LENGTH,
         blank=False
     )
 
     class Meta:
-        ordering = ['username']
+        ordering = ('username',)
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
@@ -67,13 +61,13 @@ class Follow(models.Model):
     )
 
     class Meta:
-        verbose_name = "Подписка"
-        verbose_name_plural = "Подписки"
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
 
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'author'],
-                name="unique_follow")
+                fields=('user', 'author'),
+                name='unique_follow')
         ]
 
     def __str__(self):
@@ -85,24 +79,25 @@ class Tag(models.Model):
     name = models.CharField(
         'Название тэга',
         blank=False,
-        max_length=TAG_NAME_LENGTH,
-        help_text='Название тэга'
+        max_length=settings.TAG_NAME_LENGTH,
+        help_text='Название тэга',
+        unique=True
     )
     color = models.CharField(
         'Цвет тега',
-        blank=True,
-        max_length=7
+        max_length=7,
+        unique=True,
+        validators=(hex_color_validator,)
     )
     slug = models.SlugField(
         unique=True,
         max_length=200,
         verbose_name='Метка URL',
         blank=False,
-        validators=[slug_validator]
     )
 
     class Meta:
-        ordering = ['id']
+        ordering = ('id',)
         verbose_name = 'Тэг'
         verbose_name_plural = 'Тэги'
 
@@ -115,13 +110,13 @@ class Ingredient(models.Model):
     name = models.CharField(
         'Название ингридиента',
         blank=False,
-        max_length=INGRIDIENT_NAME_LENGTH,
+        max_length=settings.INGRIDIENT_NAME_LENGTH,
         help_text='Название ингридиента'
     )
     measurement_unit = models.CharField(
         'Единица измерения',
         blank=False,
-        max_length=MEASURMENT_COUNT_LENGTH,
+        max_length=settings.MEASURMENT_COUNT_LENGTH,
         help_text='Единица измерения'
     )
 
@@ -147,8 +142,10 @@ class IngredientAmount(models.Model):
         blank=False,
         validators=(
             validators.MinValueValidator(
-                1, message="Минимальное количество ингридиентов 1"
-            ),
+                1, message='Минимальное количество ингридиентов 1'
+            ), validators.MaxValueValidator(
+                10000,
+                message='Максимальное количество ингридиентов 10000')
         ),
     )
 
@@ -166,12 +163,12 @@ class Recipe(models.Model):
     author = models.ForeignKey(
         User, on_delete=models.CASCADE,
         related_name='recipes',
-        verbose_name="Автор рецепта",
+        verbose_name='Автор рецепта',
     )
     name = models.CharField(
         'Название рецепта',
         blank=False,
-        max_length=RECIPE_NAME_LENGTH,
+        max_length=settings.RECIPE_NAME_LENGTH,
         help_text='Название рецепта'
     )
     image = models.ImageField(
@@ -181,9 +178,9 @@ class Recipe(models.Model):
     )
     text = models.TextField(
         'Описание',
-        max_length=RECIPE_DESC_LENGTH,
+        max_length=settings.RECIPE_DESC_LENGTH,
         blank=False,
-        help_text="Описание рецепта"
+        help_text='Описание рецепта'
     )
     ingredients = models.ManyToManyField(
         IngredientAmount,
@@ -202,17 +199,19 @@ class Recipe(models.Model):
         blank=False,
         validators=(
             validators.MinValueValidator(
-                1, message="Минимальное время приготовления 1 минута"
-            ),
+                1, message='Минимальное время приготовления 1 минута'
+            ), validators.MaxValueValidator(
+                10000,
+                message='Максимальное количество ингридиентов 10000')
         ),
     )
     pub_date = models.DateTimeField(
-        "Дата публикации",
+        'Дата публикации',
         auto_now_add=True
     )
 
     class Meta:
-        ordering = ("-pub_date",)
+        ordering = ('-pub_date',)
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
 
@@ -238,7 +237,7 @@ class Favorite(models.Model):
 
 
 class ShoppingCart(models.Model):
-    """Список пакупок."""
+    """Список покупок."""
     user = models.ForeignKey(
         User,
         related_name='shopping_cart',
@@ -250,5 +249,5 @@ class ShoppingCart(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Список пакупок'
+        verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'

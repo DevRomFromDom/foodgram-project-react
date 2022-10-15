@@ -15,7 +15,6 @@ router_v1.register(
     viewset=FollowListViewSet,
     basename='subscriptions'
 )
-
 router_v1.register(
     prefix='users',
     viewset=CustomUserView,
@@ -42,14 +41,15 @@ urlpatterns = [
     path('api/recipes/download_shopping_cart/',
          ShoppingCartCreateDestroyView.as_view(),
          name='shopping_cart-txt'),
+
     path('api/auth/token/logout/', delete_token, name='logout'),
     path('api/auth/token/login/', create_token, name='login'),
+
     path('api/', include(router_v1.urls)),
 
     re_path(r'api/recipes/(?P<id>\d+)/favorite',
             FavoriteCreateDestroyView.as_view(),
             name='favorite'),
-
     re_path(r'api/recipes/(?P<id>\d+)/shopping_cart',
             ShoppingCartCreateDestroyView.as_view(),
             name='shopping_cart'),

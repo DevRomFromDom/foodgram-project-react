@@ -3,12 +3,13 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
-from product_app.models import (Favorite, Follow, Ingredient, IngredientAmount,
-                                Recipe, ShoppingCart, Tag, User)
 from rest_framework import mixins, permissions, status, views, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from product_app.models import (Favorite, Follow, Ingredient, IngredientAmount,
+                                Recipe, ShoppingCart, Tag, User)
 
 from .permissions import OwnerOrReadOnly
 from .serializers import (BaseUserSerializer, CreateRecipeSerializer,
@@ -18,8 +19,10 @@ from .serializers import (BaseUserSerializer, CreateRecipeSerializer,
 
 
 class CustomUserView(UserViewSet):
-    def get_serializer_class(self):
+    """Кастомный вьюсет Djoser."""
 
+    def get_serializer_class(self):
+        """Получение сериализаторов для определенных событий."""
         if self.action == 'create':
             return UserSerializer
         elif self.action in ['list', 'me', 'retrieve']:
@@ -31,7 +34,7 @@ class CustomUserView(UserViewSet):
                 'request': self.request})
 
     def get_permissions(self):
-
+        """Предоставление прав для определенных событий."""
         if self.action in ['retrieve', "user_list"]:
             self.permission_classes = [permissions.AllowAny]
         return super().get_permissions()
@@ -79,6 +82,7 @@ class TagListRetrieveViewSet(mixins.ListModelMixin,
     serializer_class = TagSerializer
 
     def get_paginated_response(self, data):
+        """Возвращение данных без пагинации."""
         return Response(data)
 
 
@@ -91,6 +95,7 @@ class IngredientsListRetrieveView(mixins.ListModelMixin,
     serializer_class = IngredientSerializer
 
     def get_paginated_response(self, data):
+        """Возвращение данных без пагинации."""
         return Response(data)
 
 
@@ -100,6 +105,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
     permission_classes = [OwnerOrReadOnly]
 
     def get_queryset(self):
+        """Формирование списка рецептов в зависимости от query параметров."""
         recipes = Recipe.objects.all()
         tags_query = self.request.query_params.getlist('tags')
         author = self.request.query_params.get('author')
@@ -128,6 +134,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         return recipes
 
     def get_serializer_class(self):
+        """Получение сериализатора для конкретного события."""
         if self.action in ['list', 'retrieve']:
             return RecipeSerializer
         elif self.action in ['create', 'update']:
@@ -136,6 +143,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
             'request': self.request})
 
     def list(self, request):
+        """Получение списка рецептов."""
         serializer = self.get_serializer(self.get_queryset(), many=True)
         page = self.paginate_queryset(self.get_queryset())
         if page is not None:
@@ -144,12 +152,13 @@ class RecipesViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
+        """Получение рецепта по ID."""
         recipe = get_object_or_404(self.get_queryset(), pk=pk)
         serializer = self.get_serializer(recipe)
         return Response(serializer.data)
 
     def create(self, request):
-        permissions
+        """Создание рецепта."""
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -157,6 +166,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, pk, *args, **kwargs):
+        """Изменение рецепта."""
         partial = kwargs.pop('partial', False)
         instance = get_object_or_404(Recipe, pk=pk)
         serializer = CreateRecipeSerializer(
@@ -167,10 +177,12 @@ class RecipesViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def partial_update(self, request, *args, **kwargs):
+        """Частичное изменение рецепта."""
         kwargs['partial'] = True
         return self.update(request, *args, **kwargs)
 
     def destroy(self, request, pk):
+        """Удаление рецепта."""
         instanse = get_object_or_404(Recipe, pk=pk)
         self.perform_destroy(instance=instanse)
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -180,6 +192,7 @@ class FavoriteCreateDestroyView(views.APIView):
     """Вью для избранных рецептов."""
 
     def post(self, request, id=None):
+        """Добавление рецепта в список избранного."""
         user = self.request.user
         recipe = get_object_or_404(Recipe, pk=id)
 
@@ -197,6 +210,7 @@ class FavoriteCreateDestroyView(views.APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, id):
+        """Удаление рецепта из избранного."""
         user = self.request.user
         recipe = get_object_or_404(Recipe, id=id)
 
@@ -237,6 +251,7 @@ class ShoppingCartCreateDestroyView(views.APIView):
         return HttpResponse(short_report, content_type='text/plain')
 
     def post(self, request, id=None):
+        """Добавление рецепта в корзину."""
         user = self.request.user
         recipe = get_object_or_404(Recipe, pk=id)
 
@@ -254,6 +269,7 @@ class ShoppingCartCreateDestroyView(views.APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, id):
+        """Удаление рецепта из корзины."""
         user = self.request.user
         recipe = get_object_or_404(Recipe, id=id)
 
@@ -274,6 +290,7 @@ class FollowListViewSet(viewsets.ModelViewSet):
     page_size_query_param = 'limit'
 
     def get_queryset(self):
+        """Получение всех авторов на которых подписан пользватель."""
         user = self.request.user
         if user.follower.all().exists():
             followers_ids = list(
@@ -283,6 +300,11 @@ class FollowListViewSet(viewsets.ModelViewSet):
         return User.objects.none()
 
     def list(self, request):
+        """
+        Получение списка всех авторов
+        на которых подписан пользователь
+        и их рецепты.
+        """
         serializer = FollowSerializer(self.get_queryset(), many=True, context={
             'request': self.request})
         page = self.paginate_queryset(self.get_queryset())
@@ -297,6 +319,7 @@ class FollowView(views.APIView):
     """Вью для подписок."""
 
     def post(self, request, id):
+        """Подписаться на автора."""
         author_follow = get_object_or_404(User, pk=id)
         user = request.user
         if (author_follow == user or Follow.objects.filter(
@@ -310,6 +333,7 @@ class FollowView(views.APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, id):
+        """Отписаться от автора."""
         author_unfollow = get_object_or_404(User, pk=id)
         user = request.user
         if Follow.objects.filter(author=author_unfollow, user=user).exists():
