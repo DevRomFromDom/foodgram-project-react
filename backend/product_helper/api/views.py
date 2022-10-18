@@ -256,7 +256,7 @@ class ShoppingCartCreateDestroyView(views.APIView):
         with open('shopping_cart.txt', "w") as file:
             for name, amount in shopping_cart.items():
                 file.write(f'{name} {amount}' + '\n')
-        short_report = open(f"{user}.txt", 'r')
+        short_report = open('shopping_cart.txt', 'r')
         return HttpResponse(short_report, content_type='text/plain')
 
     def post(self, request, id=None):
