@@ -136,8 +136,8 @@ class RecipesViewSet(viewsets.ModelViewSet):
         if author:
             recipes = recipes.filter(author__id=int(author))
         if tags_query:
-            recipes = recipes.exclude(
-                tags__in=Tag.objects.exclude(slug__in=tags_query))
+            recipes = recipes.filter(
+                tags__in=Tag.objects.filter(slug__in=tags_query)).distinct()
         return recipes or Recipe.objects.none()
 
     def get_serializer_class(self):
