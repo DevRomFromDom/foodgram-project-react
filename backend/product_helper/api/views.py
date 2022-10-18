@@ -1,3 +1,5 @@
+from itertools import chain
+
 from django.contrib.auth.hashers import check_password
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
@@ -90,12 +92,18 @@ class IngredientsListRetrieveView(mixins.ListModelMixin,
                                   viewsets.GenericViewSet
                                   ):
     """Вьюсет для ингридиентов."""
-    queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+    pagination_class = None
 
-    def get_paginated_response(self, data):
-        """Возвращение данных без пагинации."""
-        return Response(data)
+    def get_queryset(self):
+        name = self.request.query_params.get('name')
+        if name:
+            queryset_start_with = Ingredient.objects.filter(
+                name__istartswith=name)
+            queryset_contains = Ingredient.objects.filter(
+                name__icontains=name).exclude(id__in=queryset_start_with)
+            return chain(queryset_start_with, queryset_contains)
+        return Ingredient.objects.all()
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
@@ -166,6 +174,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     def update(self, request, pk, *args, **kwargs):
         """Изменение рецепта."""
+        self.get_object()
         partial = kwargs.pop('partial', False)
         instance = get_object_or_404(Recipe, pk=pk)
         serializer = CreateRecipeSerializer(
@@ -182,6 +191,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, pk):
         """Удаление рецепта."""
+        self.get_object()
         instanse = get_object_or_404(Recipe, pk=pk)
         self.perform_destroy(instance=instanse)
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -246,7 +256,7 @@ class ShoppingCartCreateDestroyView(views.APIView):
         with open('shopping_cart.txt', "w") as file:
             for name, amount in shopping_cart.items():
                 file.write(f'{name} {amount}' + '\n')
-        short_report = open("shopping_cart.txt", 'r')
+        short_report = open(f"{user}.txt", 'r')
         return HttpResponse(short_report, content_type='text/plain')
 
     def post(self, request, id=None):

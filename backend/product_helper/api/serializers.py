@@ -157,12 +157,19 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         ingredients_id_list = [ing['id'] for ing in data['ingredients']]
-        try:
-            [int(ing['amount'])for ing in data['ingredients']]
-        except ValueError:
-            raise serializers.ValidationError(
-                {'ingredients':
-                 "Количество ингредиентов должно быть числом."})
+        for ing in data['ingredients']:
+            try:
+                int(ing['amount'])
+                if int(ing['amount']) > 10000:
+                    raise serializers.ValidationError(
+                        {'ingredients':
+                         'Количество ингредиентов'
+                         f"слишком большое. {ing['amount']}"})
+            except ValueError:
+                raise serializers.ValidationError(
+                    {'ingredients':
+                     'Количество ингредиентов'
+                     f"должно быть числом. {ing['amount']}"})
         if len(ingredients_id_list) == 0 or len(data['tags']) == 0:
             raise serializers.ValidationError(
                 {'ingredients/tags':
@@ -264,7 +271,7 @@ class FollowSerializer(BaseUserSerializer):
 
     def get_recipes_count(self, obj):
         """Получение количества рецептов у автора."""
-        return Recipe.objects.filter(pk=obj.id).count()
+        return obj.recipes.all().count()
 
     def get_recipes(self, obj):
         """Получение рецептов автора."""

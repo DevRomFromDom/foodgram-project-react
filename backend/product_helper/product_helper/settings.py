@@ -60,7 +60,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'product_helper.wsgi.application'
 
-
 DATABASES = {
     'default': {
         'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
@@ -141,4 +140,4 @@ TAG_NAME_LENGTH = 200
 INGRIDIENT_NAME_LENGTH = 200
 RECIPE_NAME_LENGTH = 200
 MEASURMENT_COUNT_LENGTH = 200
-RECIPE_DESC_LENGTH = 400
+RECIPE_DESC_LENGTH = 20000
